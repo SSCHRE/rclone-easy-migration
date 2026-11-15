@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>rclone Easy Migration</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script>
+    // Apply the saved/system theme before first paint to avoid a flash.
+    (function () {
+      var pref = 'auto';
+      try { pref = localStorage.getItem('rem.theme') || 'auto'; } catch (e) {}
+      var dark = pref === 'dark' || (pref === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+    })();
+  </script>
+  <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<nav class="navbar bg-body-tertiary border-bottom sticky-top">
+  <div class="container-lg flex-nowrap gap-2">
+    <span class="navbar-brand fw-semibold mb-0 me-auto text-truncate">
+      <i class="bi bi-cloud-arrow-up text-primary me-1"></i><span class="d-none d-sm-inline">rclone </span>Easy Migration
+    </span>
+    <span class="badge text-bg-secondary d-none d-sm-inline" id="versionBadge" title="rclone version">rclone …</span>
+    <button class="btn btn-sm btn-outline-secondary" id="btnRemotes" type="button">
+      <i class="bi bi-hdd-network"></i> <span class="d-none d-sm-inline">Manage remotes</span>
+    </button>
+    <div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" id="themeBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Change theme">
+        <i class="bi bi-circle-half" id="themeIcon"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><button class="dropdown-item" type="button" data-theme-choice="light"><i class="bi bi-sun me-2"></i>Light</button></li>
+        <li><button class="dropdown-item" type="button" data-theme-choice="dark"><i class="bi bi-moon-stars me-2"></i>Dark</button></li>
+        <li><button class="dropdown-item" type="button" data-theme-choice="auto"><i class="bi bi-circle-half me-2"></i>Auto (system)</button></li>
+        <li class="desktop-only d-none"><hr class="dropdown-divider"></li>
+        <li class="desktop-only d-none"><button class="dropdown-item" type="button" id="awakeItem"><i class="bi bi-check2-square me-2"></i>Keep computer awake</button></li>
+        <li class="desktop-only d-none"><button class="dropdown-item" type="button" id="logsItem"><i class="bi bi-folder2-open me-2"></i>Open log folder</button></li>
+      </ul>
+    </div>
+    <button class="btn btn-sm btn-outline-danger" id="btnQuit" type="button">
+      <i class="bi bi-power"></i> <span class="d-none d-sm-inline">Quit</span>
+    </button>
+  </div>
+</nav>
+
+<main class="container-lg py-3 py-md-4" id="mainView">
+
+  <!-- Stepper -->
+  <ol class="stepper list-unstyled mb-4" id="stepper" aria-label="Progress">
+    <li><button type="button" class="step" data-step="1"><span class="step-num">1</span><span class="step-label">Source</span></button></li>
+    <li><button type="button" class="step" data-step="2"><span class="step-num">2</span><span class="step-label">Destination</span></button></li>
+    <li><button type="button" class="step" data-step="3"><span class="step-num">3</span><span class="step-label">Options</span></button></li>
+    <li><button type="button" class="step" data-step="4"><span class="step-num">4</span><span class="step-label">Migrate</span></button></li>
+  </ol>
+
+  <!-- STEP 1 -->
+  <section class="wizard-pane" id="pane1" aria-labelledby="h1">
+    <div id="resumeCard" class="mb-4 d-none"></div>
+    <h1 class="h4 mb-1" id="h1">Where are your files now?</h1>
+    <p class="text-body-secondary">Pick the account (or a folder on this computer) you want to copy <strong>from</strong>.</p>
+    <div id="noRemotes" class="card text-center mb-3 d-none">
+      <div class="card-body py-4">
+        <i class="bi bi-cloud-slash display-5 text-body-secondary"></i>
+        <h2 class="h5 mt-2">No cloud accounts configured yet</h2>
+        <p class="text-body-secondary mb-3">Add your first cloud storage account to get started. You can still use a folder on this computer meanwhile.</p>
+        <button class="btn btn-primary" type="button" data-action="open-remotes"><i class="bi bi-plus-lg"></i> Add a cloud account</button>
+      </div>
+    </div>
+    <div class="card"><div class="card-body" id="srcPicker"></div></div>
+    <div class="d-flex justify-content-end mt-3">
+      <button class="btn btn-primary" id="next1" type="button">Next: Destination <i class="bi bi-arrow-right"></i></button>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="wizard-pane" id="pane2" aria-labelledby="h2" hidden>
+    <h1 class="h4 mb-1" id="h2">Where should the files go?</h1>
+    <p class="text-body-secondary">Pick the account and folder to copy <strong>to</strong>. The folder is created if it doesn't exist.</p>
+    <div class="alert alert-secondary py-2 small" id="srcReminder"></div>
+    <div class="card"><div class="card-body" id="dstPicker"></div></div>
+    <div id="dstProblem" class="mt-3"></div>
+    <div class="d-flex justify-content-between mt-3">
+      <button class="btn btn-outline-secondary" data-goto="1" type="button"><i class="bi bi-arrow-left"></i> Back</button>
+      <button class="btn btn-primary" id="next2" type="button">Next: Options <i class="bi bi-arrow-right"></i></button>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="wizard-pane" id="pane3" aria-labelledby="h3" hidden>
+    <h1 class="h4 mb-1" id="h3">How should it be migrated?</h1>
+    <p class="text-body-secondary">The defaults are safe for most cases.</p>
+
+    <fieldset class="mb-4">
+      <legend class="h6">Mode</legend>
+      <div class="row g-2 mode-cards">
+        <div class="col-12 col-md-4">
+          <input class="btn-check" type="radio" name="mode" id="modeCopy" value="copy" checked>
+          <label class="card h-100 mode-card" for="modeCopy"><div class="card-body">
+            <div class="fw-semibold"><i class="bi bi-files text-success"></i> Copy <span class="badge text-bg-success ms-1">Recommended</span></div>
+            <div class="small text-body-secondary mt-1">Copies new and changed files. Never deletes anything on the destination.</div>
+          </div></label>
+        </div>
+        <div class="col-12 col-md-4">
+          <input class="btn-check" type="radio" name="mode" id="modeSync" value="sync">
+          <label class="card h-100 mode-card" for="modeSync"><div class="card-body">
+            <div class="fw-semibold"><i class="bi bi-arrow-repeat text-danger"></i> Sync</div>
+            <div class="small text-danger mt-1"><i class="bi bi-exclamation-triangle-fill"></i> Makes the destination identical to the source. <strong>Deletes</strong> files on the destination that aren't in the source.</div>
+          </div></label>
+        </div>
+        <div class="col-12 col-md-4">
+          <input class="btn-check" type="radio" name="mode" id="modeMove" value="move">
+          <label class="card h-100 mode-card" for="modeMove"><div class="card-body">
+            <div class="fw-semibold"><i class="bi bi-scissors text-warning"></i> Move</div>
+            <div class="small text-warning-emphasis mt-1"><i class="bi bi-exclamation-triangle-fill"></i> Copies files, then <strong>deletes them from the source</strong>.</div>
+          </div></label>
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="card mb-3"><div class="card-body">
+      <div class="form-check form-switch mb-1">
+        <input class="form-check-input" type="checkbox" role="switch" id="optDryRun">
+        <label class="form-check-label fw-semibold" for="optDryRun">Dry run (simulate first)</label>
+      </div>
+      <div class="form-text mb-3 ms-5">Shows what would happen without changing any files. Recommended before Sync or Move.</div>
+      <div class="form-check form-switch mb-1">
+        <input class="form-check-input" type="checkbox" role="switch" id="optChecksum">
+        <label class="form-check-label" for="optChecksum">Compare by checksum</label>
+      </div>
+      <div class="form-text mb-3 ms-5">More reliable than size and date, but slower.</div>
+      <div class="form-check form-switch mb-1">
+        <input class="form-check-input" type="checkbox" role="switch" id="optIgnoreExisting">
+        <label class="form-check-label" for="optIgnoreExisting">Skip files that already exist on the destination</label>
+      </div>
+      <div class="form-text ms-5">Existing files are never updated, even if they changed.</div>
+    </div></div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-4">
+        <label class="form-label" for="optTransfers">Parallel transfers</label>
+        <input class="form-control" type="number" min="1" max="64" id="optTransfers" value="4">
+      </div>
+      <div class="col-6 col-md-4">
+        <label class="form-label" for="optCheckers">Checkers</label>
+        <input class="form-control" type="number" min="1" max="128" id="optCheckers" value="8">
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="optBw">Bandwidth limit</label>
+        <input class="form-control" type="text" id="optBw" placeholder="e.g. 10M (empty = unlimited)" autocomplete="off">
+      </div>
+    </div>
+
+    <p>
+      <button class="btn btn-sm btn-link px-0" type="button" data-bs-toggle="collapse" data-bs-target="#advanced" aria-expanded="false" aria-controls="advanced">
+        <i class="bi bi-sliders"></i> Advanced
+      </button>
+    </p>
+    <div class="collapse mb-3" id="advanced">
+      <div class="card card-body">
+        <label class="form-label" for="optExclude">Exclude patterns <span class="text-body-secondary fw-normal">(one per line)</span></label>
+        <textarea class="form-control font-monospace" id="optExclude" rows="4" placeholder="*.tmp&#10;.DS_Store&#10;node_modules/**"></textarea>
+        <div class="form-text">Files matching these patterns are skipped. See rclone filtering docs for syntax.</div>
+      </div>
+    </div>
+
+    <div class="card mb-3" id="routeCard">
+      <div class="card-body">
+        <div class="d-flex gap-2 align-items-start" id="routeMsg"><span class="spinner-border spinner-border-sm mt-1" aria-hidden="true"></span> Checking how data will travel…</div>
+        <div class="form-check form-switch mt-3 d-none" id="acrossWrap">
+          <input class="form-check-input" type="checkbox" role="switch" id="optAcross">
+          <label class="form-check-label fw-semibold" for="optAcross">Try direct server-side copy between accounts</label>
+          <div class="form-text">Both accounts use the same kind of storage, so the provider may copy files itself without downloading them. If your accounts lack the needed permissions this can fail; switch it off and rclone will stream through this computer instead.</div>
+        </div>
+        <div class="alert alert-info small mt-3 mb-0 d-none" id="driveNote"><i class="bi bi-info-circle"></i> Google Drive limits uploads to about <strong>750 GB per day</strong>. If the limit is reached rclone stops cleanly; just resume the next day.</div>
+      </div>
+    </div>
+
+    <div class="card border-primary mb-3">
+      <div class="card-body">
+        <div class="small text-body-secondary mb-1">Summary</div>
+        <div class="fs-5 text-break" id="summary"></div>
+        <div class="small text-body-secondary mt-1" id="summaryExtra"></div>
+      </div>
+    </div>
+
+    <p class="small text-body-secondary"><i class="bi bi-shield-check"></i> Safe to stop anytime - already copied files are skipped when you resume. Long migrations can take days: keep your computer on and connected (this app keeps it from sleeping while it is open).</p>
+    <div class="d-flex justify-content-between align-items-center">
+      <button class="btn btn-outline-secondary" data-goto="2" type="button"><i class="bi bi-arrow-left"></i> Back</button>
+      <button class="btn btn-success btn-lg" id="btnStart" type="button"><i class="bi bi-play-fill"></i> Start migration</button>
+    </div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="wizard-pane" id="pane4" aria-labelledby="h4" hidden>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+      <h1 class="h4 mb-0" id="h4">Migrating</h1>
+      <span class="badge text-bg-primary" id="jobBadge">Running</span>
+    </div>
+    <p class="text-break text-body-secondary" id="jobTitle"></p>
+
+    <div class="card mb-3"><div class="card-body">
+      <div class="d-flex justify-content-between small mb-1">
+        <span id="pbLabel">0 B of 0 B</span><span id="pbPct" class="fw-semibold">0%</span>
+      </div>
+      <div class="progress" style="height:1.5rem" role="progressbar" aria-label="Migration progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="pbWrap">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" id="pb" style="width:0%"></div>
+      </div>
+      <div class="small text-body-secondary mt-1" id="scanNote">Totals can grow while rclone is still scanning.</div>
+      <div class="row row-cols-2 row-cols-md-4 g-3 mt-1 stat-grid">
+        <div class="col"><div class="stat-label">Speed</div><div class="stat-value" id="stSpeed">—</div></div>
+        <div class="col"><div class="stat-label">Time left</div><div class="stat-value" id="stEta">—</div></div>
+        <div class="col"><div class="stat-label">Elapsed</div><div class="stat-value" id="stElapsed">—</div></div>
+        <div class="col"><div class="stat-label">Files</div><div class="stat-value" id="stFiles">0 / 0</div></div>
+        <div class="col"><div class="stat-label">Checks</div><div class="stat-value" id="stChecks">0 / 0</div></div>
+        <div class="col"><div class="stat-label">Errors</div><div class="stat-value" id="stErrors">0</div></div>
+        <div class="col" id="stDeletesWrap"><div class="stat-label">Deleted</div><div class="stat-value" id="stDeletes">0</div></div>
+        <div class="col"><div class="stat-label">Transferred</div><div class="stat-value" id="stBytes">0 B</div></div>
+      </div>
+    </div></div>
+
+    <div class="alert alert-danger d-none text-break" id="lastError"></div>
+
+    <div class="card mb-3" id="activeCard">
+      <div class="card-header py-2 small fw-semibold">Currently transferring</div>
+      <ul class="list-group list-group-flush" id="activeList"></ul>
+    </div>
+
+    <p class="small text-body-secondary" id="jobHint"><i class="bi bi-info-circle"></i> Safe to stop anytime - already copied files are skipped when you resume. Keep this computer on and connected; this app keeps it from sleeping while it is open. Progress is saved to disk, so you can close it and come back later.</p>
+    <div id="resultArea"></div>
+    <div id="verifyArea" class="mb-3"></div>
+
+    <div class="d-flex flex-wrap gap-2" id="jobButtons">
+      <button class="btn btn-outline-danger" id="btnStop" type="button"><i class="bi bi-stop-circle"></i> Stop</button>
+      <button class="btn btn-outline-primary d-none" id="btnVerify" type="button"><i class="bi bi-shield-check"></i> Verify (check source vs destination)</button>
+      <button class="btn btn-success d-none" id="btnResume" type="button"><i class="bi bi-arrow-clockwise"></i> <span id="btnResumeLbl">Retry</span></button>
+      <button class="btn btn-warning d-none" id="btnRunReal" type="button"><i class="bi bi-play-fill"></i> Run for real</button>
+      <button class="btn btn-primary d-none" id="btnNew" type="button"><i class="bi bi-arrow-counterclockwise"></i> Start new migration</button>
+    </div>
+  </section>
+</main>
+
+<!-- Goodbye screen -->
+<main class="container text-center py-5 d-none" id="byeView">
+  <i class="bi bi-check-circle display-3 text-success"></i>
+  <h1 class="h3 mt-3">rclone has been stopped</h1>
+  <p class="text-body-secondary">You can close this window now.</p>
+</main>
+
+<!-- Generic confirm modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="confirmTitle">Confirm</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="confirmBody"></div>
+        <div class="form-check mt-3 d-none" id="confirmCheckWrap">
+          <input class="form-check-input" type="checkbox" id="confirmCheck">
+          <label class="form-check-label" for="confirmCheck">I understand</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmOk">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts" aria-live="polite" aria-atomic="true"></div>
+
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/remotes.js"></script>
+<script src="js/desktop.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f80ed"/>
+      <stop offset="1" stop-color="#1b4fbf"/>
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="224" fill="url(#bg)"/>
+  <!-- back cloud (source) -->
+  <path fill="#ffffff" fill-opacity="0.55" d="M300 560a110 110 0 0 1 20-218a150 150 0 0 1 280-30a120 120 0 0 1 40 238z"/>
+  <!-- front cloud (destination) -->
+  <path fill="#ffffff" d="M420 800a120 120 0 0 1 14-239a165 165 0 0 1 312-36a135 135 0 0 1 32 275z"/>
+  <!-- arrow -->
+  <path fill="#1b4fbf" d="M470 690h150v-60l110 90l-110 90v-60h-150z" transform="translate(-40 -60)"/>
+</svg>

@@ -1,0 +1,15 @@
+{
+  "name": "rclone-easy-migration",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A friendly desktop app for migrating files between cloud storage accounts, powered by rclone.",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:exe": "tauri build --no-bundle"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.4"
+  }
+}

@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+          - name: macos-arm64
+            os: macos-latest
+            rust_target: aarch64-apple-darwin
+          - name: macos-x64
+            os: macos-latest
+            rust_target: x86_64-apple-darwin
+          - name: linux-x86_64
+            os: ubuntu-22.04
+            rust_target: x86_64-unknown-linux-gnu
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential curl wget file patchelf \
+            libwebkit2gtk-4.1-dev libxdo-dev libssl-dev \
+            libayatana-appindicator3-dev librsvg2-dev
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          key: ${{ matrix.name }}
+
+      - run: npm ci
+
+      - name: Build portable exe (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          npx tauri build --no-bundle --target ${{ matrix.rust_target }}
+          mkdir -p dist
+          cp "src-tauri/target/${{ matrix.rust_target }}/release/rclone-easy-migration.exe" \
+             "dist/rclone-easy-migration-${{ matrix.name }}.exe"
+
+      - name: Build .app (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          npx tauri build --bundles app --target ${{ matrix.rust_target }}
+          mkdir -p dist
+          ditto -c -k --keepParent \
+            "src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos/rclone Easy Migration.app" \
+            "dist/rclone-easy-migration-${{ matrix.name }}.zip"
+
+      - name: Build AppImage (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          npx tauri build --bundles appimage --target ${{ matrix.rust_target }}
+          mkdir -p dist
+          cp src-tauri/target/${{ matrix.rust_target }}/release/bundle/appimage/*.AppImage \
+             "dist/rclone-easy-migration-${{ matrix.name }}.AppImage"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Draft GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - run: ls -la dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: rclone Easy Migration ${{ github.ref_name }}
+          body: |
+            Download the single file for your system and run it - no installer.
+            Requires rclone (your existing install is used; the app offers to download it if missing).
+            Builds are unsigned: see the README for how to open them on Windows / macOS / Linux.
+          files: dist/*

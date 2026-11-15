@@ -1,0 +1,46 @@
+/* Small tweaks only; colours come from Bootstrap variables so both themes work. */
+body { background-color: var(--bs-body-bg); overflow-x: hidden; }
+
+/* Stepper */
+.stepper { display: flex; gap: .5rem; padding: 0; margin: 0; }
+.stepper li { flex: 1 1 0; min-width: 0; }
+.step {
+  width: 100%; display: flex; align-items: center; gap: .5rem; justify-content: center;
+  background: none; border: 0; border-bottom: 3px solid var(--bs-border-color);
+  padding: .5rem .25rem; color: var(--bs-secondary-color); cursor: default;
+}
+.step .step-num {
+  width: 1.75rem; height: 1.75rem; border-radius: 50%; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid currentColor; font-weight: 600; font-size: .85rem;
+}
+.step.done { color: var(--bs-success); border-bottom-color: var(--bs-success); cursor: pointer; }
+.step.done .step-num { background: var(--bs-success); border-color: var(--bs-success); color: #fff; }
+.step.active { color: var(--bs-primary); border-bottom-color: var(--bs-primary); font-weight: 600; }
+.step:disabled { cursor: default; }
+@media (max-width: 575.98px) {
+  .step .step-label { display: none; }
+  .step.active .step-label { display: inline; }
+  .step.active { flex: 2 1 0; }
+}
+
+/* Folder list */
+.folder-list { max-height: 16rem; overflow-y: auto; }
+.folder-list .list-group-item { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.folder-list .list-group-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.breadcrumb { flex-wrap: wrap; }
+.breadcrumb-item a { text-decoration: none; }
+
+/* Mode cards */
+.mode-card { cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.btn-check:checked + .mode-card { border-color: var(--bs-primary); box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .25); }
+.btn-check:focus-visible + .mode-card { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+#modeSync:checked + .mode-card { border-color: var(--bs-danger); box-shadow: 0 0 0 .2rem rgba(var(--bs-danger-rgb), .25); }
+#modeMove:checked + .mode-card { border-color: var(--bs-warning); box-shadow: 0 0 0 .2rem rgba(var(--bs-warning-rgb), .25); }
+
+/* Stats */
+.stat-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--bs-secondary-color); }
+.stat-value { font-size: 1.1rem; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#activeList .list-group-item { padding: .5rem 1rem; }
+.fs-code { word-break: break-all; }
+.problem-list { max-height: 12rem; overflow-y: auto; font-size: .85rem; }
