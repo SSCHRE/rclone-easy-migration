@@ -1,102 +1,84 @@
 # rclone Easy Migration
 
-Moving everything from one cloud to another — say, Google Drive to OneDrive, or Dropbox to pCloud — shouldn't require learning a command line. [rclone](https://rclone.org) can do it brilliantly, but it's a power tool. This is a small app that puts a friendly face on the one thing most people need it for: **getting your files from cloud A to cloud B**.
+A small app that moves your files from one cloud to another — Google Drive to OneDrive, Dropbox to pCloud, whatever you need. Pick where your files are, pick where they should go, press start.
 
-You pick where your files are, pick where they should go, press start, and watch them move.
+It's a friendly front-end for [rclone](https://rclone.org), which does the actual work.
 
-![rclone Easy Migration](docs/screenshot.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/progress-dark.png">
+  <img src="docs/screenshots/progress-light.png" alt="A migration from Google Drive to OneDrive in progress">
+</picture>
 
-## Getting it
+## Download
 
-There's no installer. Grab the file for your computer from the [Releases page](../../releases/latest) and open it:
+Get the file for your computer from the [Releases page](../../releases/latest). There's nothing to install.
 
-- **Windows** — `rclone-easy-migration-windows-x64.exe`. Double-click it. Put it on your Desktop or wherever you like.
-- **Mac** — `rclone-easy-migration-macos-arm64.zip` for Apple Silicon (M1 and newer), or `macos-x64.zip` for older Intel Macs. Unzip it and open the app.
-- **Linux** — `rclone-easy-migration-linux-x86_64.AppImage`. Make it executable (`chmod +x`) and run it.
+- **Windows:** `rclone-easy-migration-windows-x64.exe`. Double-click it.
+- **Mac:** `rclone-easy-migration-macos-arm64.zip` (M1 and newer) or `macos-x64.zip` (Intel). Unzip and open.
+- **Linux:** `rclone-easy-migration-linux-x86_64.AppImage`. Make it executable and run it.
 
-A heads-up: the app isn't code-signed yet, so the first time you open it your computer will be a bit suspicious.
+The app isn't code-signed yet, so the first time:
 
-- On **Windows** you'll see "Windows protected your PC". Click *More info*, then *Run anyway*.
-- On a **Mac**, right-click the app and choose *Open*, then confirm. (Or go to *System Settings → Privacy & Security* and click *Open Anyway*.)
+- **Windows:** click *More info*, then *Run anyway*.
+- **Mac:** right-click the app, choose *Open*, then confirm.
 
-After that it opens normally.
-
-## You'll need rclone
-
-The app is a front-end for rclone, so it needs rclone on your computer. If you already use rclone, great — the app finds it and all the cloud accounts you've already set up show up straight away. Nothing gets copied or changed in your setup.
-
-If you don't have rclone yet, the app will notice and offer to download it for you (it checks the download against rclone's official checksums). You can also point it at an rclone file yourself.
-
-<details>
-<summary>Where does it look for rclone?</summary>
-
-In this order: the `RCLONE_PATH` environment variable, your `PATH`, the usual install locations (winget, Scoop, Chocolatey, Homebrew, snap, `/usr/local/bin`, and so on), and finally a copy the app downloaded itself. If yours lives somewhere unusual, set `RCLONE_PATH` to the full path, e.g. `D:\tools\rclone.exe`.
-</details>
+You'll also need rclone. If you already have it, the app uses it along with your existing cloud accounts. If not, the app offers to download it for you.
 
 ## How it works
 
-1. **Source** — choose the account and folder your files are in now.
-2. **Destination** — choose where they should end up. You can make a new folder right there if you need one.
-3. **Options** — choose how to migrate (more on that below). The defaults are sensible.
-4. **Migrate** — start it and watch the progress: speed, time left, which files are on their way.
+1. **Source:** choose the account and folder your files are in.
+2. **Destination:** choose where they should go (you can create a new folder there).
+3. **Options:** choose Copy, Sync or Move.
+4. **Migrate:** watch the progress, then hit **Verify** to check both sides match.
 
-When it's done, hit **Verify** to have rclone double-check that both sides match.
+To connect a cloud account, click **Manage remotes**, then *Add cloud account*.
 
-Don't have your clouds connected yet? Click **Manage remotes**, then *Add cloud account*, pick your provider and sign in. For services like Google Drive or OneDrive, your browser opens so you can log in and give rclone access.
+<table>
+  <tr>
+    <td><picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/source-dark.png">
+      <img src="docs/screenshots/source-light.png" alt="Picking the source folder">
+    </picture></td>
+    <td><picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/options-dark.png">
+      <img src="docs/screenshots/options-light.png" alt="Choosing Copy, Sync or Move">
+    </picture></td>
+  </tr>
+</table>
 
 ## Copy, Sync or Move?
 
-This is the one choice that really matters, so here it is in plain words:
+- **Copy** (default) adds your files to the destination. It never deletes anything.
+- **Sync** makes the destination an exact mirror, so it **deletes** files there that aren't in the source.
+- **Move** copies everything, then **deletes it from the source**.
 
-- **Copy** (the default) puts your files on the destination and never deletes anything anywhere. If you're unsure, use this.
-- **Sync** makes the destination an exact mirror of the source. That means it **deletes** anything on the destination that isn't in the source. Great for keeping a mirror; dangerous if you mix up source and destination.
-- **Move** copies everything over and then **deletes it from the source**.
+Not sure? Use Copy. You can also turn on *dry run* to see what would happen without changing anything.
 
-Sync and Move ask you to confirm before they start. There's also a *dry run* switch that shows what *would* happen without touching anything — worth using before a Sync or Move.
+## Long migrations
 
-## Big migrations
+Big migrations can take days. That's fine:
 
-Moving a few hundred gigabytes can take a day or more, and that's fine. The app is built for it:
+- The app keeps your computer awake while it's open (leave a laptop lid open, though).
+- You can stop any time, even restart your computer. Open the app again and click **Resume**. Files already copied are skipped.
+- When both sides use the same provider, rclone can copy directly inside the cloud, which is much faster.
 
-- **It keeps your computer awake** while it's open, so it won't fall asleep halfway through. (Your screen can still turn off. Closing a laptop lid may still put it to sleep, though, so leave it open.)
-- **You can stop any time.** Close the app, restart your computer, come back tomorrow. Open the app again and you'll see a **Resume** button. Files that already made it across are skipped, so it picks up where it left off. One catch: a large file that was halfway through starts over from the beginning.
-- **Same provider on both sides?** When it can, rclone copies directly inside the cloud (for example between two Google Drive accounts), so the data doesn't have to travel through your internet connection at all. The app tells you when that's happening.
-- Otherwise the files stream *through* your computer — nothing is stored on your disk, but it does use your internet connection.
-- Google Drive only accepts about 750 GB of uploads per day per account. If you hit that, the app stops cleanly; just resume the next day.
+## Run it without the app
 
-There's a log of everything in the app's log folder (theme menu → *Open log folder*) if you ever need to see what happened.
-
-## Good to know
-
-- Everything runs on your own computer. The app starts rclone in the background, talks to it privately, and stops it when you close the app.
-- Your cloud logins are stored in rclone's own config file, just like when you use rclone directly. Treat that file (`rclone config file` shows where it is) like a password.
-- Some things rclone can't fix for you: provider quotas, file names one cloud allows and another doesn't, or Google Docs/Sheets that only exist as Google formats. Keep a backup of anything you can't afford to lose.
-
-## No app? Run it from the folder
-
-If you'd rather not run an executable, you can download this repository and start the same interface in your browser with a script:
-
-- Windows: double-click `start.bat`
-- Mac: double-click `start.command`
-- Linux: run `./start.sh`
-
-It finds your rclone the same way, starts it privately on your computer and opens your browser. If your browser asks for a username and password, they're printed in the window that opened. Close that window (or click *Quit*) to stop.
+Prefer not to run an executable? Download this repository and run `start.bat` (Windows), `start.command` (Mac) or `./start.sh` (Linux). It opens the same interface in your browser.
 
 ## For developers
 
-The app is a [Tauri v2](https://v2.tauri.app) project. The interface is plain HTML, JavaScript and Bootstrap in `ui/` — no frontend build step — and talks to rclone's [remote control API](https://rclone.org/rc/). The Rust side in `src-tauri/` finds rclone, starts `rclone rcd` with a random login on `127.0.0.1`, keeps the computer awake and cleans up on exit.
-
-You'll need Node.js (LTS), Rust (stable) and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform. Then:
+Built with [Tauri v2](https://v2.tauri.app). The interface in `ui/` is plain HTML, JavaScript and Bootstrap and talks to rclone's [remote control API](https://rclone.org/rc/). You need Node.js, Rust and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```sh
 npm ci
-npm run tauri dev     # run it while developing
-npm run build:exe     # Windows: single exe in src-tauri/target/release/
-npm run tauri build   # macOS .app / Linux AppImage in src-tauri/target/release/bundle/
+npm run tauri dev     # develop
+npm run build:exe     # Windows exe
+npm run tauri build   # Mac .app / Linux AppImage
 ```
 
-To publish a release, set the same version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`, then push a tag like `v0.2.0`. GitHub Actions builds the Windows, Mac and Linux files and puts them on a draft release for you to check and publish.
+To release, bump the version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`, then push a tag like `v0.2.0`. GitHub Actions builds all platforms into a draft release.
 
 ## Credits
 
-All the heavy lifting is done by [rclone](https://rclone.org) (MIT licensed), which isn't bundled here. The interface uses [Bootstrap](https://getbootstrap.com) and [Bootstrap Icons](https://icons.getbootstrap.com) (both MIT; licenses in `ui/vendor/`).
+Powered by [rclone](https://rclone.org). The interface uses [Bootstrap](https://getbootstrap.com) and [Bootstrap Icons](https://icons.getbootstrap.com). All MIT licensed.

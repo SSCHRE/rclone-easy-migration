@@ -16,3 +16,6 @@ logs/
 node_modules/
 src-tauri/target/
 src-tauri/gen/
+
+# local release builds
+release/
